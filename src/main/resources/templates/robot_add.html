@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+
+<body>
+<a href="/">首页</a>
+<a href="/robot/robots">机器人设置</a>
+<div id="root">
+    <form action="/robot/submit">
+        <input type="text" name="id" hidden value="${robot.id!''}">
+        <p>机器人名称: <input type="text" name="name" value="${robot.name!''}"/></p>
+        <p>市场: <input type="text" name="symbol" value="${robot.symbol!''}"/></p>
+        <p>刷量用户: <input type="text" name="userId" value="${robot.userId!''}"/></p>
+        <p>最高委托价: <input type="text" name="maxPrice" value="${robot.maxPrice!''}"/></p>
+        <p>最低委托价: <input type="text" name="minPrice" value="${robot.minPrice!''}"/></p>
+        <p>最大委托量: <input type="text" name="maxNum" value="${robot.maxNum!''}"/></p>
+        <p>最少委托量: <input type="text" name="minNum" value="${robot.minNum!''}"/></p>
+        <p>最大挂买单笔数: <input type="text" name="maxBuyOrders" value="${robot.maxBuyOrders!''}"/></p>
+        <p>最大挂卖单笔数: <input type="text" name="maxSellOrders" value="${robot.maxSellOrders!''}"/></p>
+        <p>刷量频率(毫秒): <input type="text" name="frequence" value="${robot.frequence!''}"/></p>
+        <input type="text" name="status" hidden value="${robot.status!0}"/></p>
+        <input type="submit" value="提交" />
+    </form>
+</div>
+</body>
+</html>
+
+

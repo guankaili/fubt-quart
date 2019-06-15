@@ -1,0 +1,31 @@
+server:
+  port: 8331
+  servlet:
+    context-path: /
+
+spring:
+  devtools:
+    restart:
+      enabled: false
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/fubt-quart?allowMultiQueries=true&useUnicode=true&characterEncoding=UTF-8
+    username: root
+    password: 123456
+
+beetl:
+  suffix: html
+
+beetlsql:
+  basePackage: com.fubt
+  daoSuffix: Dao
+  sqlPath: /sql
+
+beetl-beetlsql:
+  dev: false
+
+logging:
+  level: debug
+  level.com.okay: debug
+  config: classpath:logback-spring.xml
+  path: logs/
+  file: fubt-quart.log

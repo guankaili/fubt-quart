@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+
+<body>
+<a href="/">首页</a>
+<a href="/user/add">添加用户</a>
+<div id="root">
+    <table border="1">
+        <tr>
+            <th>账号</th>
+            <th>登录密码</th>
+            <th>交易密码</th>
+            <th>accessKey</th>
+            <th>secretKey</th>
+            <th>操作</th>
+        </tr>
+        @for(user in users){
+        <tr>
+            <td>${user.account}</td>
+            <td>${user.pwd}</td>
+            <td>${user.transPwd}</td>
+            <td>${user.accessKey}</td>
+            <td>${user.secretKey}</td>
+            <td>
+                <a href="/user/update/${user.id}">修改</a>
+                <a href="/user/delete/${user.id}">删除</a>
+            </td>
+        </tr>
+        @}
+    </table>
+</div>
+</body>
+</html>
+
+

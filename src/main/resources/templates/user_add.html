@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+
+<body>
+<a href="/">首页</a>
+<a href="/user/users">用户设置</a>
+<div id="root">
+    <form action="/user/submit">
+        <input type="text" name="id" hidden value="${user.id!''}">
+        <p>账号: <input type="text" name="account" value="${user.account!''}"/></p>
+        <p>登录密码: <input type="password" name="pwd" value="${user.pwd!''}"/></p>
+        <p>交易密码: <input type="password" name="transPwd" value="${user.transPwd!''}"/></p>
+        <p>accessKey: <input type="password" name="accessKey" value="${user.accessKey!''}"/></p>
+        <p>secretKey: <input type="password" name="secretKey" value="${user.secretKey!''}"/></p>
+        <input type="submit" value="提交" />
+    </form>
+</div>
+</body>
+</html>
+
+
