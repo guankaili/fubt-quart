@@ -81,7 +81,7 @@ public class RobotConfigController {
     public ModelAndView submit(RobotConfig robotConfig) {
 
         // happy lucky
-        robotConfig.setSymbol("NECFBT");
+//        robotConfig.setSymbol("NECFBT");
 
         if (robotConfig.getId() == null || robotConfig.getId() < 0) {
             robotConfig.setCreateTime(new Date());

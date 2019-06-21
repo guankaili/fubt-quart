@@ -5,6 +5,7 @@ import com.fubt.dao.RobotConfigDao;
 import com.fubt.dao.UserDao;
 import com.fubt.entity.RobotConfig;
 import com.fubt.entity.User;
+import com.fubt.utils.Constant;
 import com.fubt.utils.NumberUtils;
 import com.fubt.utils.SignUtils;
 import okhttp3.*;
@@ -37,8 +38,7 @@ public class RobotConfigService {
     public static final AtomicInteger maxSellOrders = new AtomicInteger(0);
     public static final AtomicInteger maxBuyOrders = new AtomicInteger(0);
 
-    private static final String FUBT_TICKER = "https://api.fubt.co/v1/market/ticker";
-    private static final String FUBT_ENTRUST = "https://api.fubt.co/v1/order/saveEntrust ";
+    private static final String SHANLIAN_ENTRUST = "https://www.shanliani.com/api/bargain/order-limit";
     public static final String userAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36";
 
     public static OkHttpClient client =new OkHttpClient.Builder()
@@ -97,6 +97,7 @@ public class RobotConfigService {
         robotConfig.setStatus(1);
         robotConfigDao.updateById(robotConfig);
 
+        // 刷k线
         new Thread(() -> {
             try {
                 while (true) {
@@ -139,70 +140,53 @@ public class RobotConfigService {
 
         User user = userDao.single(robotConfig.getUserId());
 
-        // get请求accesskey需要进行url编码
-//        String accessKey = java.net.URLEncoder.encode(user.getAccessKey().trim(), "UTF-8");
-//
-//        // 1. 获取买卖价格
-//        Request request = new Request.Builder()
-//                .url(FUBT_TICKER + "?symbol=" + robotConfig.getSymbol() + "&accessKey=" + accessKey)
-//                .get()
-//                .addHeader("cache-control", "no-cache")
-//                .addHeader("User-Agent", userAgent)
-//                .addHeader("Host", "api.fubt.co")
-//                .build();
-//
-//        Response response = client.newCall(request).execute();
-//        String tickerStr = response.body().string();
-//
-//        JSONObject tickerJson = JSONObject.parseObject(tickerStr).getJSONObject("data");
-//
-//        double buy = tickerJson.getDouble("buy");
-//        double sell = tickerJson.getDouble("sell");
-//        double minPrice = buy == 0 ? robotConfig.getMinPrice() : buy;
-//        double maxPrice = sell == 0 ? robotConfig.getMaxPrice() : sell;
-
         double minPrice = robotConfig.getMinPrice();
         double maxPrice = robotConfig.getMaxPrice();
 
-        //对2进去取余  0卖 1买
+        //对2进去取余  0买  1卖
         int isBuy = new java.util.Random().nextInt(10) % 2;
-        //委托价格在盘口买卖一偏离10%进行，确保及时成交
-//        if(isBuy==0){
-//            //卖
-//            minPrice = NumberUtils.mul(minPrice, 0.95, 4);
-//        }else if(isBuy==1){
-//            //买
-//            maxPrice = NumberUtils.mul(maxPrice, 1.05, 4);
-//        }
 
         // 2. 计算出挂单价格和数量
         double price = NumberUtils.getRandom(minPrice, maxPrice);
         double number = NumberUtils.getRandom(robotConfig.getMinNum(), robotConfig.getMaxNum());
 
-        price = NumberUtils.mul(price, 1, 4);
+        price = NumberUtils.mul(price, 1, 8);
         number = NumberUtils.mul(number, 1, 2);
 
         // 3. 签名信息，拼接参数
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("count", String.valueOf(number));
-        jsonObject.put("accessKey", user.getAccessKey().trim());
-        jsonObject.put("matchType", "limit");
-        jsonObject.put("payPwd", user.getTransPwd().trim());
+        jsonObject.put("amount", String.valueOf(number));
+        jsonObject.put("market", robotConfig.getSymbol());
+        // buy:2;sell:1
+        jsonObject.put("side", isBuy == 0 ? 1 : 2);
         jsonObject.put("price", String.valueOf(price));
-        jsonObject.put("type", isBuy == 0 ? "sell" : "buy");
-        jsonObject.put("symbol", robotConfig.getSymbol());
-
-        String signString = SignUtils.jsonToString(jsonObject.toJSONString());
-        String signature = SignUtils.sha256_HMAC(signString, user.getSecretKey().trim());
-        jsonObject.put("signature",signature);
+        jsonObject.put("access_token", user.getAccessKey().trim());
+        jsonObject.put("chain_network", "main_network");
+        jsonObject.put("os", "web");
+        jsonObject.put("os_ver", "1.0.0");
+        jsonObject.put("soft_ver", "1.0.0");
+        jsonObject.put("language", "zh_cn");
 
         // 4. 发送交易
-        RequestBody requestBody = FormBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toJSONString());
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, isBuy == 0 ? "1" : "2"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
         Request.Builder requestBuilder = new Request.Builder();
         Request entrustRequest = requestBuilder.post(requestBody)
-                .url(FUBT_ENTRUST)
-//                .addHeader("Content-Type", "application/json;charset=UTF-8")
-                .addHeader("Host", "api.fubt.co")
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
                 .build();
 
         Response entrustResponse = client.newCall(entrustRequest).execute();
