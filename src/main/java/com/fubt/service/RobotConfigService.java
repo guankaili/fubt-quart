@@ -109,6 +109,10 @@ public class RobotConfigService {
 
                     try {
                         doEntrust(robot);
+
+                        Thread.sleep(500);
+
+                        sellBuyBatch(robot);
                     } catch (Exception e) {
                         logger.error("刷量异常....", e);
                     }
@@ -201,6 +205,76 @@ public class RobotConfigService {
             //买
             maxBuyOrders.incrementAndGet();
         }
+    }
+
+    /**
+     * 自买自卖
+     * @param robotConfig
+     * @throws Exception
+     */
+    private void sellBuyBatch(RobotConfig robotConfig) throws Exception {
+
+        User user = userDao.single(robotConfig.getUserId());
+
+
+        // 2. 计算出挂单价格和数量
+        double price = NumberUtils.getRandom(Constant.BUY_ONE_PRICE, Constant.SELL_ONE_PRICE);
+        double number = NumberUtils.getRandom(robotConfig.getMinNum(), robotConfig.getMaxNum());
+
+        price = NumberUtils.mul(price, 1, 8);
+        number = NumberUtils.mul(number, 1, 2);
+
+        // 3. 签名信息，拼接参数
+
+        // 4. 发送交易
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, "1"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
+        Request.Builder requestBuilder = new Request.Builder();
+        Request entrustRequest = requestBuilder.post(requestBody)
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
+                .build();
+
+        Response entrustResponse = client.newCall(entrustRequest).execute();
+
+
+
+        // 4. 发送交易
+        RequestBody requestBody1 = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, "2"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
+        Request.Builder requestBuilder1 = new Request.Builder();
+        Request entrustRequest1 = requestBuilder1.post(requestBody1)
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
+                .build();
+
+        Response entrustResponse1 = client.newCall(entrustRequest1).execute();
     }
 
     public void add(RobotConfig robotConfig) {
