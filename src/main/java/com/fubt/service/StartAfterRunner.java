@@ -28,5 +28,7 @@ public class StartAfterRunner implements CommandLineRunner {
                 }
             }
         }).start();
+
+        scoketClient.groupSending("{\"id\":2,\"method\":\"depth.subscribe\",\"params\":[\"OTSCUSDT\",10,\"0\"]}");
     }
 }
