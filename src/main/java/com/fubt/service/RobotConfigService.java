@@ -154,7 +154,7 @@ public class RobotConfigService {
         double price = NumberUtils.getRandom(minPrice, maxPrice);
         double number = NumberUtils.getRandom(robotConfig.getMinNum(), robotConfig.getMaxNum());
 
-        price = NumberUtils.mul(price, 1, 8);
+        price = NumberUtils.mul(price, 1, 3);
         number = NumberUtils.mul(number, 1, 2);
 
         // 3. 签名信息，拼接参数
@@ -221,7 +221,7 @@ public class RobotConfigService {
         double price = NumberUtils.getRandom(Constant.BUY_ONE_PRICE, Constant.SELL_ONE_PRICE);
         double number = NumberUtils.getRandom(robotConfig.getMinNum(), robotConfig.getMaxNum());
 
-        price = NumberUtils.mul(price, 1, 8);
+        price = NumberUtils.mul(price, 1, 3);
         number = NumberUtils.mul(number, 1, 2);
 
         // 3. 签名信息，拼接参数
