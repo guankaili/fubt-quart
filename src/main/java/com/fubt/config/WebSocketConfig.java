@@ -50,15 +50,20 @@ public class WebSocketConfig {
                             JSONArray bids = askBids.getJSONArray("bids");
 
                             Constant.BUY_ONE_PRICE = bids.getJSONArray(0).getDouble(0);
+                            Constant.BUY_MIDDLE_PRICE = bids.getJSONArray(4).getDouble(0);
                             Constant.SELL_ONE_PRICE = asks.getJSONArray(0).getDouble(0);
-
-                            System.out.println();
+                            Constant.SELL_MIDDLE_PRICE = asks.getJSONArray(9).getDouble(0);
+                            logger.info("当前message："+message);
+                            logger.info("买一价格："+Constant.BUY_ONE_PRICE+"，卖一价格："+ Constant.SELL_ONE_PRICE);
                         }
 
 
                     } else {
                         // 最新价格
                         Constant.LAST_PRICE = jsonObject.getJSONObject("result").getDouble("last");
+                        Constant.HEIGHT_PRICE = jsonObject.getJSONObject("result").getDouble("high");
+                        Constant.LOW_PRICE = jsonObject.getJSONObject("result").getDouble("low");
+                        Constant.OPEN_PRICE = jsonObject.getJSONObject("result").getDouble("open");
                     }
 
                 }
