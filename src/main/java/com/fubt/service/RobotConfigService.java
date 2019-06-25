@@ -102,7 +102,7 @@ public class RobotConfigService {
         robotConfig.setStatus(1);
         robotConfigDao.updateById(robotConfig);
         double lastPrice = Constant.LAST_PRICE;
-        double targetPrice = 4.87D;
+        double targetPrice = 4.89D;
         int cycle = 15;
         int[] adr = new int[2];
         adr[0] = 2;
@@ -118,21 +118,12 @@ public class RobotConfigService {
                     }
 
                     try {
-//                        doEntrust(robot);
+                        doEntrust(robot);
 //
 //                        Thread.sleep(500);
-                        kline(robot,adr,1,6);
 
 //                        randomCycleTargetPrices(robot,new BigDecimal(String.valueOf(lastPrice)), cycle, adr, 1,new BigDecimal(String.valueOf(targetPrice)));
-//                        sellBuyBatch(robot);
-//                        Thread.sleep(500);
-//                        int hour = getHour(new Date());
-//                        if(hour%2 > 0){
-//                            sellCoinTrade(robot);
-//                        }
-//                        else{
-//                            buyCoinTrade(robot);
-//                        }
+                        sellBuyBatch(robot);
                     } catch (Exception e) {
                         logger.error("刷量异常....", e);
                     }
@@ -586,7 +577,7 @@ public class RobotConfigService {
                             3);
                     adjustDiff = curPrice.subtract(adjustedPrice);
                     try {
-                        doEntrust(robotConfig);
+//                        doEntrust(robotConfig);
                         batch(robotConfig,curPrice.doubleValue());
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -764,105 +755,4 @@ public class RobotConfigService {
 //        randomCycleTargetPrices(null,new BigDecimal("4.83"),15,adr,1,new BigDecimal("4.85"));
     }
 
-
-    public void kline(RobotConfig robotConfig,int[] adr,int minCyCle,int cycle){
-        try {
-            doEntrust(robotConfig);
-//        BigDecimal heightPrice =  new BigDecimal(String.valueOf(Constant.HEIGHT_PRICE));
-//        BigDecimal lowPrice =  new BigDecimal(String.valueOf(Constant.LOW_PRICE));
-            BigDecimal lastPrice = new BigDecimal(String.valueOf(Constant.LAST_PRICE));
-            BigDecimal openPrice = new BigDecimal(String.valueOf(Constant.OPEN_PRICE));
-            BigDecimal minPrice =  new BigDecimal(String.valueOf(robotConfig.getMinPrice()));
-            BigDecimal maxPrice =  new BigDecimal(String.valueOf(robotConfig.getMaxPrice()));
-            BigDecimal avgPrice = minPrice.add(maxPrice).divide(new BigDecimal("2"));
-            BigDecimal targetPrice = new BigDecimal("4.87");
-            boolean isDesc = false;
-            if (openPrice.compareTo(targetPrice) > 0) {
-                isDesc = true;
-            }
-            //当前分钟
-            int minute = getMinute(new Date());
-            List<BigDecimal> ranges = randomCycleRanges(minCyCle, cycle, adr);
-            BigDecimal curPrice = lastPrice;
-            BigDecimal priceDiff = targetPrice.compareTo(lastPrice) != 0 ? targetPrice.subtract(lastPrice) : lastPrice.multiply(getRatio()).setScale(SCALE, BigDecimal.ROUND_DOWN);
-            BigDecimal adjustDiff = BigDecimal.ZERO;// 调整价差
-            if (ranges.size() > 0) {
-                // 各阶段平均价格
-                BigDecimal avgDiff = priceDiff.divide(new BigDecimal(ranges.size()), SCALE, BigDecimal.ROUND_DOWN);
-
-                if (priceDiff.compareTo(BigDecimal.ZERO) > 0) {
-                    minPrice = lastPrice;
-                    maxPrice = targetPrice;
-                } else {
-                    minPrice = targetPrice;
-                    maxPrice = lastPrice;
-                }
-                BigDecimal curDiff;
-                for (int i = 0, size = ranges.size(); i < size; i++) {
-                    curDiff = priceDiff.multiply(ranges.get(i)).setScale(SCALE, BigDecimal.ROUND_DOWN);
-                    curPrice = curPrice.add(curDiff);
-                    if (lastPrice.compareTo(targetPrice) != 0) {
-                        BigDecimal curMin;
-                        BigDecimal curMax;
-                        //存在调整价差
-                        int len = ranges.size() > 8 ? ranges.size() / 4 : ranges.size();
-                        if (adjustDiff.compareTo(BigDecimal.ZERO) != 0) {
-                            curPrice = curPrice.subtract(adjustDiff);
-                            adjustDiff = BigDecimal.ZERO;
-                        }
-//                     设置阶段的最大价格和最小价格
-                        if (priceDiff.compareTo(BigDecimal.ZERO) > 0) {
-                            curMin = lastPrice.add(avgDiff.multiply(new BigDecimal(i - len))).setScale(SCALE, BigDecimal.ROUND_DOWN);
-                            curMax = lastPrice.add(avgDiff.multiply(new BigDecimal(i + len))).setScale(SCALE, BigDecimal.ROUND_DOWN);
-                        } else {
-                            curMin = lastPrice.add(avgDiff.multiply(new BigDecimal(i + len))).setScale(SCALE, BigDecimal.ROUND_DOWN);
-                            curMax = lastPrice.add(avgDiff.multiply(new BigDecimal(i - len))).setScale(SCALE, BigDecimal.ROUND_DOWN);
-                        }
-                        BigDecimal adjustedPrice = adjustPrice(
-                                // 最低价格不能低于周期的最低价格
-                                minPrice.compareTo(curMin) < 0 ? curMin : minPrice,
-                                // 最搞价格不能高于周期的最高价格
-                                maxPrice.compareTo(curMax) > 0 ? curMax : maxPrice,
-                                curPrice.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : curPrice,
-                                3);
-                        adjustDiff = curPrice.subtract(adjustedPrice);
-                    }
-                    if (isDesc) {
-                        //因为是下跌趋势，保证开盘不小于收盘
-                        if (minute / 5 == 0) {
-                            if (openPrice.compareTo(curPrice) < 0) {
-                                curPrice = openPrice.subtract(new BigDecimal(String.valueOf(MAX_RATIO)));
-                            }
-//                        if(curPrice.compareTo(targetPrice) <= 0){
-//                            targetPrice = avgPrice;
-//                        }
-//                        if(curPrice.compareTo(avgPrice) <= 0){
-//                            targetPrice = maxPrice;
-//                        }
-                        }
-                        //两降一生升
-                        if (minute / 5 / 3 == 0) {
-                            curPrice = openPrice.add(new BigDecimal(String.valueOf(MAX_RATIO)));
-                        }
-                    } else {
-                        //因为是上升趋势，保证开盘小于收盘
-                        if (minute / 5 == 0) {
-                            if (openPrice.compareTo(curPrice) < 0) {
-                                curPrice = openPrice.add(new BigDecimal(String.valueOf(MAX_RATIO)));
-                            }
-                        }
-                        //两升一降
-                        if (minute / 5 / 3 == 0) {
-                            curPrice = openPrice.subtract(new BigDecimal(String.valueOf(MAX_RATIO)));
-                        }
-                    }
-                    logger.info("当前价格为:"+curPrice.toPlainString());
-                    batch(robotConfig, curPrice.doubleValue());
-
-                }
-            }
-        }catch (Exception e) {
-            logger.info(e.getMessage());
-        }
-    }
 }
