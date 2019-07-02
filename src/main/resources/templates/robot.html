@@ -37,8 +37,8 @@
             <td>${robot.frequence}</td>
             <td>${robot.status==0?'停止':'启动'}</td>
             <td>
-                <a href="javascript:void(0);" data-id="${robot.id}" id="start">启动</a>
-                <a href="javascript:void(0);" data-id="${robot.id}" id="stop">停止</a>
+                <a href="javascript:void(0);" data-id="${robot.id}" class="start">启动</a>
+                <a href="javascript:void(0);" data-id="${robot.id}" class="stop">停止</a>
                 <a href="/robot/update/${robot.id}">修改</a>
                 <a href="/robot/delete/${robot.id}">删除</a>
             </td>
@@ -60,14 +60,14 @@
             window.location.reload();
         }
 
-        $("#start").click(function(){
+        $(".start").click(function(){
             $.get("/robot/start/" + $(this).data("id"), function(result){
                 alert(result.msg);
                 myrefresh();
             });
         });
 
-        $("#stop").click(function(){
+        $(".stop").click(function(){
             $.get("/robot/stop/" + $(this).data("id"), function(result){
                 alert(result.msg);
                 myrefresh();

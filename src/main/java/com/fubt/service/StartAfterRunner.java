@@ -22,6 +22,7 @@ public class StartAfterRunner implements CommandLineRunner {
             while (true) {
                 try {
                     scoketClient.groupSending("{\"id\":1,\"method\":\"today.query\",\"params\":[\"OTSCUSDT\"]}");
+//                    scoketClient.groupSending("{\"id\":1,\"method\":\"today.query\",\"params\":[\"DFTUSDT\"]}");
                     Thread.sleep(500);
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -30,5 +31,6 @@ public class StartAfterRunner implements CommandLineRunner {
         }).start();
 
         scoketClient.groupSending("{\"id\":2,\"method\":\"depth.subscribe\",\"params\":[\"OTSCUSDT\",10,\"0\"]}");
+//        scoketClient.groupSending("{\"id\":2,\"method\":\"depth.subscribe\",\"params\":[\"DFTUSDT\",10,\"0\"]}");
     }
 }
