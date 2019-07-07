@@ -17,6 +17,9 @@ public class RobotConfig {
     private Double maxPrice ;
     private Double minNum ;
     private Double minPrice ;
+    private double range;
+    private int cycle;
+    private double targetPrice;
     private Integer maxBuyOrders;
     private Integer maxSellOrders;
     private String name ;
@@ -123,4 +126,27 @@ public class RobotConfig {
         this.createTime = createTime;
     }
 
+    public double getRange() {
+        return range;
+    }
+
+    public void setRange(double range) {
+        this.range = range;
+    }
+
+    public int getCycle() {
+        return cycle;
+    }
+
+    public void setCycle(int cycle) {
+        this.cycle = cycle;
+    }
+
+    public double getTargetPrice() {
+        return targetPrice;
+    }
+
+    public void setTargetPrice(double targetPrice) {
+        this.targetPrice = targetPrice;
+    }
 }

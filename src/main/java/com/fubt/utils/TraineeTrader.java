@@ -1,5 +1,8 @@
 package com.fubt.utils;
 
+import ch.qos.logback.core.net.SyslogOutputStream;
+import org.springframework.util.CollectionUtils;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -469,7 +472,16 @@ public class TraineeTrader {
         int[] adr = new int[2];
         adr[0] = 2;
         adr[1] = 1;
-        randomPrices(new BigDecimal("4.881"),new BigDecimal("4.89"),5,adr,8);
+        List<BigDecimal> list = randomPrices(new BigDecimal("4"),new BigDecimal("6"),60,adr,8);
+        if(!CollectionUtils.isEmpty(list)){
+            for(int i=0; i< 30/5; i++){
+                int fromIndex = i * 60;
+                int toIndex = (i+1) * 60;
+                int isBuy = i%3;
+                List<BigDecimal> listPage = list.subList(fromIndex,toIndex);
+                System.out.println(i+",isBuy:"+Integer.valueOf(isBuy));
+            }
+        }
     }
 
     /**
