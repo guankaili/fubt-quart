@@ -212,14 +212,14 @@ public class RobotConfigService {
                 int fromIndex = i * 60;
                 int toIndex = (i+1) * 60;
                 List<BigDecimal> listPage = prices.subList(fromIndex,toIndex);
-                int check = i%3;
-                if(isBuy == 0 && check == 2){
-                    isBuy = 1;
-                }else if(isBuy == 1 && check == 2){
-                    isBuy = 0;
-                }
-
-                excute(robotConfig, user, isBuy, targetPrice, listPage);
+//                int check = i%3;
+//                if(isBuy == 0 && check == 2){
+//                    isBuy = 1;
+//                }else if(isBuy == 1 && check == 2){
+//                    isBuy = 0;
+//                }
+                int isBuy1 = new java.util.Random().nextInt(10) % 2;
+                excute(robotConfig, user, isBuy1, targetPrice, listPage);
             }
         }
 
