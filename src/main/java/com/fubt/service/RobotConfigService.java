@@ -112,6 +112,7 @@ public class RobotConfigService {
                     }
 
                     try {
+                        sellBuyBatch(robot);
                         doEntrust(robot);
                     } catch (Exception e) {
                         logger.error("刷量异常....", e);
@@ -144,84 +145,110 @@ public class RobotConfigService {
                 }, 0, 5, TimeUnit.MINUTES
         );
     }*/
+
+
     /**
      * 执行委托操作
      */
     public void doEntrust(RobotConfig robotConfig) throws Exception {
-        if (maxBuyOrders.get() >= robotConfig.getMaxBuyOrders() || maxSellOrders.get() >= robotConfig.getMaxSellOrders()) {
-            logger.warn("{} 市场的机器人 {} 已经停止，挂卖单总笔数：{}，挂买单总笔数：{}",
-                    robotConfig.getSymbol(), robotConfig.getName(), maxSellOrders.get(), maxBuyOrders.get());
+
+        double lastPrice = Constant.LAST_PRICE;
+
+
+        if(robotConfig.getTargetPrice() == lastPrice){
             return;
         }
-
-        User user = userDao.single(robotConfig.getUserId());
-        double lastPrice = Constant.LAST_PRICE;
-        double minPrice = robotConfig.getMinPrice();
-        double maxPrice = robotConfig.getMaxPrice();
-
-
         int[] adr = new int[2];
         adr[0] = 2;
         adr[1] = 1;
-        //对2进去取余  0买  1卖
-//        int isBuy = new java.util.Random().nextInt(10) % 2;
-        int isBuy = 0;
-        double targetPrice = robotConfig.getTargetPrice();
-        //当前时间
-       /* int minute = getMinute(new Date());
-        //目标时间
-        int targetMin = minute = robotConfig.getCycle();
-        if((minute>=25 && minute<35) || (minute>=5 && minute<10) || (minute>=50 && minute<55)){
-            if(maxPrice>=lastPrice || targetPrice >= lastPrice){
-                targetPrice = lastPrice - robotConfig.getRange();
-                isBuy = 1;
-            }else{
-//                targetPrice = lastPrice + robotConfig.getRange();
-                isBuy = 0;
-            }
-        }else{
-            if(maxPrice>=lastPrice || targetPrice >= lastPrice){
-                targetPrice = lastPrice + robotConfig.getRange();
-                isBuy = 0;
-            }else{
-//                targetPrice = lastPrice - robotConfig.getRange();
-                isBuy = 1;
-            }
 
-        }*/
-
-        if(targetPrice > lastPrice){
-            if(lastPrice > targetPrice || lastPrice > maxPrice){
-                targetPrice = lastPrice - robotConfig.getRange();
-                isBuy = 1;
-            }
-            isBuy = 0;
-        }else{
-            if(lastPrice < targetPrice || lastPrice < minPrice){
-                targetPrice = lastPrice + robotConfig.getRange();
-                isBuy = 0;
-            }
-            isBuy = 1;
-        }
-
-        List<BigDecimal> prices = TraineeTrader.randomPrices(new BigDecimal(String.valueOf(lastPrice)),new BigDecimal(String.valueOf(targetPrice)),robotConfig.getCycle(),adr,4);
-
+        List<BigDecimal> prices = TraineeTrader.randomPrices(new BigDecimal(String.valueOf(lastPrice)),new BigDecimal(String.valueOf(robotConfig.getTargetPrice())),robotConfig.getCycle(),adr,4);
         if(!CollectionUtils.isEmpty(prices)){
-            int part = robotConfig.getCycle()/5;
-            for(int i=0; i< part; i++){
-                int fromIndex = i * 60;
-                int toIndex = (i+1) * 60;
-                List<BigDecimal> listPage = prices.subList(fromIndex,toIndex);
-//                int check = i%3;
-//                if(isBuy == 0 && check == 2){
-//                    isBuy = 1;
-//                }else if(isBuy == 1 && check == 2){
-//                    isBuy = 0;
-//                }
-                int isBuy1 = new java.util.Random().nextInt(10) % 2;
-                excute(robotConfig, user, isBuy1, targetPrice, listPage);
+            for(BigDecimal price : prices){
+                int i = 1;
+                double targetPrice = NumberUtils.getRandom(price.doubleValue() - robotConfig.getRange(), price.doubleValue() + robotConfig.getRange());
+                sellBuyBatchForKLine(robotConfig,targetPrice,i);
+                Thread.sleep(4000);
+                i++;
             }
         }
+
+    }
+
+
+    /**
+     * 自买自卖
+     * @param robotConfig
+     * @throws Exception
+     */
+    private void sellBuyBatchForKLine(RobotConfig robotConfig,double price,int i) throws Exception {
+
+        User user = userDao.single(robotConfig.getUserId());
+
+
+        // 2. 计算出挂单价格和数量
+        double number = NumberUtils.getRandom(robotConfig.getMinNum(), robotConfig.getMaxNum());
+
+        price = NumberUtils.mul(price, 1, 4);
+        number = NumberUtils.mul(number, 1, 2);
+
+        // 3. 签名信息，拼接参数
+
+        // 4. 发送交易
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, "1"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
+        Request.Builder requestBuilder = new Request.Builder();
+        Request entrustRequest = requestBuilder.post(requestBody)
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
+                .build();
+
+        Response entrustResponse = client.newCall(entrustRequest).execute();
+        String entrustResultStr = entrustResponse.body().string();
+        logger.info("第{}次，{} 市场的机器人 {} 成功委托一笔交易 [{}, price:{}, num:{}], 委托结果: {}",
+                i,robotConfig.getSymbol(), robotConfig.getName(), "sell", price, number, entrustResultStr);
+
+
+        // 4. 发送交易
+        RequestBody requestBody1 = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, "2"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
+        Request.Builder requestBuilder1 = new Request.Builder();
+        Request entrustRequest1 = requestBuilder1.post(requestBody1)
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
+                .build();
+
+        Response entrustResponse1 = client.newCall(entrustRequest1).execute();
+
+        String entrustResultStr1 = entrustResponse1.body().string();
+        logger.info("第{}次，{} 市场的机器人 {} 成功委托一笔交易 [{}, price:{}, num:{}], 委托结果: {}",
+                i,robotConfig.getSymbol(), robotConfig.getName(), "buy", price, number, entrustResultStr1);
 
     }
 
@@ -286,6 +313,76 @@ public class RobotConfigService {
         }
     }
 
+
+    /**
+     * 自买自卖
+     * @param robotConfig
+     * @throws Exception
+     */
+    private void sellBuyBatch(RobotConfig robotConfig) throws Exception {
+
+        User user = userDao.single(robotConfig.getUserId());
+
+
+        // 2. 计算出挂单价格和数量
+        double price = NumberUtils.getRandom(Constant.BUY_ONE_PRICE, Constant.SELL_ONE_PRICE);
+        double number = NumberUtils.getRandom(robotConfig.getMinNum(), robotConfig.getMaxNum());
+
+        price = NumberUtils.mul(price, 1, 3);
+        number = NumberUtils.mul(number, 1, 2);
+
+        // 3. 签名信息，拼接参数
+
+        // 4. 发送交易
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, "1"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
+        Request.Builder requestBuilder = new Request.Builder();
+        Request entrustRequest = requestBuilder.post(requestBody)
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
+                .build();
+
+        Response entrustResponse = client.newCall(entrustRequest).execute();
+
+
+
+        // 4. 发送交易
+        RequestBody requestBody1 = new MultipartBody.Builder()
+                .setType(MediaType.parse("multipart/form-data"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"amount\""), RequestBody.create(null, String.valueOf(number)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"market\""), RequestBody.create(null, robotConfig.getSymbol()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"side\""), RequestBody.create(null, "2"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"pride\""), RequestBody.create(null, String.valueOf(price)))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"access_token\""), RequestBody.create(null, user.getAccessKey().trim()))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"chain_network\""), RequestBody.create(null, "main_network"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os\""), RequestBody.create(null, "web"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"os_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"soft_ver\""), RequestBody.create(null, "1.0.0"))
+                .addPart(Headers.of("Content-Disposition", "form-data; name=\"language\""), RequestBody.create(null, "zh_cn"))
+                .build();
+
+        Request.Builder requestBuilder1 = new Request.Builder();
+        Request entrustRequest1 = requestBuilder1.post(requestBody1)
+                .url(SHANLIAN_ENTRUST)
+                .addHeader("Content-Type", "application/json;charset=UTF-8")
+                .addHeader("user-agent", userAgent)
+                .build();
+
+        Response entrustResponse1 = client.newCall(entrustRequest1).execute();
+    }
 
     public void doTrading(int id){
         try {
