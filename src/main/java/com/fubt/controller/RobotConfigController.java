@@ -82,7 +82,7 @@ public class RobotConfigController {
 
         // happy lucky
 //        robotConfig.setSymbol("NECFBT");
-
+        robotConfig.setMinPrice(0d);
         if (robotConfig.getId() == null || robotConfig.getId() < 0) {
             robotConfig.setCreateTime(new Date());
             robotConfig.setStatus(0);

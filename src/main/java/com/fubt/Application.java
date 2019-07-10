@@ -10,7 +10,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * @date 2018/1/22下午4:17
  */
 @SpringBootApplication(scanBasePackages = { "com.fubt" })
-//@EnableScheduling
+@EnableScheduling
 public class Application {
 
     public static void main(String[] args) {
