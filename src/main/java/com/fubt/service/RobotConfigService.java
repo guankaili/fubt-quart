@@ -155,7 +155,7 @@ public class RobotConfigService {
         double lastPrice = Constant.LAST_PRICE;
 
 
-        if(robotConfig.getTargetPrice() == lastPrice){
+        if(lastPrice >= robotConfig.getTargetPrice()){
             return;
         }
         int[] adr = new int[2];
@@ -164,8 +164,9 @@ public class RobotConfigService {
 
         List<BigDecimal> prices = TraineeTrader.randomPrices(new BigDecimal(String.valueOf(lastPrice)),new BigDecimal(String.valueOf(robotConfig.getTargetPrice())),robotConfig.getCycle(),adr,4);
         if(!CollectionUtils.isEmpty(prices)){
+            int i = 1;
             for(BigDecimal price : prices){
-                int i = 1;
+
                 double targetPrice = NumberUtils.getRandom(price.doubleValue() - robotConfig.getRange(), price.doubleValue() + robotConfig.getRange());
                 sellBuyBatchForKLine(robotConfig,targetPrice,i);
                 Thread.sleep(4000);
@@ -218,7 +219,7 @@ public class RobotConfigService {
 
         Response entrustResponse = client.newCall(entrustRequest).execute();
         String entrustResultStr = entrustResponse.body().string();
-        logger.info("第{}次，{} 市场的机器人 {} 成功委托一笔交易 [{}, price:{}, num:{}], 委托结果: {}",
+        logger.info("第{}-sell次，{} 市场的机器人 {} 成功委托一笔交易 [{}, price:{}, num:{}], 委托结果: {}",
                 i,robotConfig.getSymbol(), robotConfig.getName(), "sell", price, number, entrustResultStr);
 
 
@@ -247,7 +248,7 @@ public class RobotConfigService {
         Response entrustResponse1 = client.newCall(entrustRequest1).execute();
 
         String entrustResultStr1 = entrustResponse1.body().string();
-        logger.info("第{}次，{} 市场的机器人 {} 成功委托一笔交易 [{}, price:{}, num:{}], 委托结果: {}",
+        logger.info("第{}-buy次，{} 市场的机器人 {} 成功委托一笔交易 [{}, price:{}, num:{}], 委托结果: {}",
                 i,robotConfig.getSymbol(), robotConfig.getName(), "buy", price, number, entrustResultStr1);
 
     }
