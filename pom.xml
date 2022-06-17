@@ -16,7 +16,7 @@
 
     <properties>
         <jsonrpc4j.version>1.1</jsonrpc4j.version>
-        <fastjson.version>1.2.45</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <quartz.version>2.3.0</quartz.version>
         <druid.version>1.1.10</druid.version>
         <spring.version>5.0.7.RELEASE</spring.version>
